@@ -1,4 +1,6 @@
-# Python 项目模板
+# Paint Game Toolkit
+
+开发涂色游戏的工具套件，包括一个将图像转换为 PBN 风格的工具 `src.pbn_generator.py`。
 
 ## 配置文件
 
