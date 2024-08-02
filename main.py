@@ -5,7 +5,7 @@ from src import pbn_generator
 from common.utils import loggers
 
 
-def main(args):
+def main():
     # 定义一个解析器，用于命令行执行时解析附带的参数
     parser = argparse.ArgumentParser()
     parser.add_argument("--config_dir", type=str, default="")
