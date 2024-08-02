@@ -1,7 +1,7 @@
 test/
 tests/
 data/
-output/
+outputs/
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
