@@ -150,7 +150,10 @@ def _clusterize(img: MatLike) -> tuple[MatLike, list[MatLike], MatLike]:
         pbn_config.KMEANS_CRITERIA_MAX_ITER,
         pbn_config.KMEANS_CRITERIA_EPSILON,
     )
-
+    logger.info(
+        f"正在进行 K-Means 计算（K - {pbn_config.KMEANS_NCLUSTERS}, "
+        f"Attempts - {pbn_config.KMEANS_ATTEMPTS}）"
+    )
     compactness, labels, centers = cv2.kmeans(
         data.astype(np.float32),
         pbn_config.KMEANS_NCLUSTERS,
@@ -164,7 +167,7 @@ def _clusterize(img: MatLike) -> tuple[MatLike, list[MatLike], MatLike]:
     recolored_img = centers[labels].reshape(img.shape)
     # 分别分离每个标签对应的图像部分
     area_parts = []
-    for label in range(centers.shape[0]):
+    for label in tqdm(range(centers.shape[0]), desc="生成各个区域的二值图"):
         # part 是每个部分的图像，不需要通道维度，一开始是全黑，先展成一维以便计算
         part = np.zeros(img.shape[:2], np.uint8).reshape((-1, 1))
         for pixel_idx in range(part.size):

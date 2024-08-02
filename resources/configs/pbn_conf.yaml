@@ -1,6 +1,6 @@
 slic:
   # 超像素大小，决定了超像素数量（= 原像素数量 / 超像素大小）
-  region_size: 32
+  region_size: 128
   # 使用哪种 SLIC 算法变体，包括：SLIC、SLICO（默认）、MSLIC
   algorithm: MSLIC
   # SLIC 迭代次数
@@ -16,7 +16,7 @@ slic:
 
 kmeans:
   # 聚类数目（K）
-  nclusters: 50
+  nclusters: 10
   
   # 尝试次数，使用结果最好的一次
   attempts: 6
@@ -29,9 +29,9 @@ kmeans:
     # 可叠加 - "TERM_CRITERIA_EPS+TERM_CRITERIA_MAX_ITER"
     type: TERM_CRITERIA_EPS+TERM_CRITERIA_MAX_ITER
     # 最大迭代次数
-    max_iter: 50
+    max_iter: 10
     # 簇心变动幅度
-    epsilon: 0.2
+    epsilon: 0.5
   
   # K-Means 初始化簇心的方法，包括：
   # 1. KMEANS_PP_CENTERS：按照 K-Means++ 论文中的方法
