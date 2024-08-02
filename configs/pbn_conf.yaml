@@ -1,6 +1,6 @@
 slic:
   # 超像素大小，决定了超像素数量（= 原像素数量 / 超像素大小）
-  region_size: 128
+  region_size: 256
   # 使用哪种 SLIC 算法变体，包括：SLIC、SLICO（默认）、MSLIC
   algorithm: MSLIC
   # SLIC 迭代次数
@@ -16,10 +16,10 @@ slic:
 
 kmeans:
   # 聚类数目（K）
-  nclusters: 10
+  nclusters: 20
   
   # 尝试次数，使用结果最好的一次
-  attempts: 6
+  attempts: 10
 
   # 终止条件
   criteria:
