@@ -75,7 +75,7 @@ class _PBNConfig(_Config):
 
     @property
     def KMEANS_ATTEMPTS(self):
-        return self.get("kmeans").get("attemps")
+        return self.get("kmeans").get("attempts")
 
     @property
     def KMEANS_CRITERIA_TYPE(self):

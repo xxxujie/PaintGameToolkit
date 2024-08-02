@@ -70,7 +70,7 @@ def _slickmeans(img: MatLike):
     # 3. 创建SLIC超像素对象
     logger.info(
         f"正在进行 SLIC 计算（Algo - {pbn_config.SLIC_ALGORITHM}, "
-        "RegionSize - {pbn_config.SLIC_REGION_SIZE}, NumIters - {pbn_config.SLIC_NUM_ITERATIONS}）"
+        f"RegionSize - {pbn_config.SLIC_REGION_SIZE}, NumIters - {pbn_config.SLIC_NUM_ITERATIONS}）"
     )
     slic = cv2.ximgproc.createSuperpixelSLIC(
         lab_img,
@@ -99,6 +99,10 @@ def _slickmeans(img: MatLike):
         pbn_config.KMEANS_CRITERIA_TYPE,
         pbn_config.KMEANS_CRITERIA_MAX_ITER,
         pbn_config.KMEANS_CRITERIA_EPSILON,
+    )
+    logger.info(
+        f"正在进行 K-Means 计算（K - {pbn_config.KMEANS_NCLUSTERS}, "
+        f"Attempts - {pbn_config.KMEANS_ATTEMPTS}）"
     )
     _, klabels, kcenters = cv2.kmeans(
         slic_features,
