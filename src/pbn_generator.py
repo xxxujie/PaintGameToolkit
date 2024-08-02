@@ -40,6 +40,7 @@ def _save_img(img: MatLike, img_name, tag=""):
 def _convert_and_save(img_path: str):
     img = cv2.imread(img_path)
     img_name = os.path.basename(img_path)
+    logger.info(f"开始转换 PBN（for {img_name}）")
     # 先通过聚类分离原图区域
     # recolored_img, area_parts, centers = _clusterize(img)
     recolored_img, area_parts, centers = _slickmeans(img)
@@ -58,10 +59,19 @@ def _convert_and_save(img_path: str):
 def _slickmeans(img: MatLike):
     # 先经过 SLIC 做 superpixel 拿到超像素特征图
     # 1. 高斯模糊
-    img = cv2.GaussianBlur(img, (5, 5), 0)
+    img = cv2.GaussianBlur(
+        img,
+        ksize=pbn_config.SLIC_GAUSSIAN_KSIZE,
+        sigmaX=pbn_config.SLIC_GAUSSIAN_SIGMA_X,
+        sigmaY=pbn_config.SLIC_GAUSSIAN_SIGMA_Y,
+    )
     # 2. 转换到LAB颜色空间
     lab_img = cv2.cvtColor(img, cv2.COLOR_BGR2Lab)
     # 3. 创建SLIC超像素对象
+    logger.info(
+        f"正在进行 SLIC 计算（Algo - {pbn_config.SLIC_ALGORITHM}, "
+        "RegionSize - {pbn_config.SLIC_REGION_SIZE}, NumIters - {pbn_config.SLIC_NUM_ITERATIONS}）"
+    )
     slic = cv2.ximgproc.createSuperpixelSLIC(
         lab_img,
         algorithm=pbn_config.SLIC_ALGORITHM,

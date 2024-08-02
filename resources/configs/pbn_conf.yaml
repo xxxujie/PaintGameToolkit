@@ -4,7 +4,15 @@ slic:
   # 使用哪种 SLIC 算法变体，包括：SLIC、SLICO（默认）、MSLIC
   algorithm: SLICO
   # SLIC 迭代次数
-  num_iterations: 10 
+  num_iterations: 10
+  # SLIC 前的高斯模糊操作
+  gaussian_blur:
+    # 高斯核尺寸
+    ksize:
+      - 5
+      - 5
+    sigmaX: 0
+    sigmaY: 0
 
 kmeans:
   # 聚类数目（K）

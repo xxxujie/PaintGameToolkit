@@ -188,6 +188,18 @@ class _PBNConfig(_Config):
     def SLIC_NUM_ITERATIONS(self):
         return self.get("slic").get("num_iterations")
 
+    @property
+    def SLIC_GAUSSIAN_KSIZE(self):
+        return self.get("slic").get("gaussian_blur").get("ksize")
+
+    @property
+    def SLIC_GAUSSIAN_SIGMA_X(self):
+        return self.get("slic").get("gaussian_blur").get("sigmaX")
+
+    @property
+    def SLIC_GAUSSIAN_SIGMA_Y(self):
+        return self.get("slic").get("gaussian_blur").get("sigmaY")
+
 
 # 留给外部调用的单例，初始化需要指定对应配置文件的地址
 pbn_config = _PBNConfig(find_config_path("pbn_conf.yaml"))
