@@ -1,3 +1,11 @@
+slic:
+  # 超像素大小，决定了超像素数量（= 原像素数量 / 超像素大小）
+  region_size: 32
+  # 使用哪种 SLIC 算法变体，包括：SLIC、SLICO（默认）、MSLIC
+  algorithm: SLICO
+  # SLIC 迭代次数
+  num_iterations: 10 
+
 kmeans:
   # 聚类数目（K）
   nclusters: 8
@@ -10,8 +18,8 @@ kmeans:
     # 终止条件类型，包括：
     # 1. TERM_CRITERIA_EPS：簇心变动幅度低于 epsilon 时终止
     # 2. TERM_CRITERIA_MAX_ITER：达到最大迭代次数时终止
-    # 可叠加 - "TERM_CRITERIA_EPS + TERM_CRITERIA_MAX_ITER"
-    type: "TERM_CRITERIA_EPS + TERM_CRITERIA_MAX_ITER"
+    # 可叠加 - "TERM_CRITERIA_EPS+TERM_CRITERIA_MAX_ITER"
+    type: TERM_CRITERIA_EPS+TERM_CRITERIA_MAX_ITER
     # 最大迭代次数
     max_iter: 10
     # 簇心变动幅度
@@ -20,7 +28,7 @@ kmeans:
   # K-Means 初始化簇心的方法，包括：
   # 1. KMEANS_PP_CENTERS：按照 K-Means++ 论文中的方法
   # 2. KMEANS_RANDOM_CENTERS：随机初始化
-  flags: "KMEANS_PP_CENTERS"
+  flags: KMEANS_PP_CENTERS
 
 contour:
   # 提取轮廓层级的模式，包括：
@@ -28,11 +36,11 @@ contour:
   # 2. RETR_LIST：提取所有轮廓，但不建立父子和嵌套关系
   # 3. RETR_CCOMP：提取所有轮廓，并组织为两个层级的关系
   # 4. RETR_TREE：提取所有轮廓，并包含完成的层级关系
-  retrieval_mode: "RETR_TREE"
+  retrieval_mode: RETR_TREE
   # 提取轮廓点的模式，包括：
   # 1. CHAIN_APPROX_NONE：存储所有轮廓点
   # 2. CHAIN_APPROX_SIMPLE：只存储必要的轮廓点以节省空间，比如矩形只需要四个顶点
-  approx_mode: "CHAIN_APPROX_SIMPLE"
+  approx_mode: CHAIN_APPROX_SIMPLE
 
 # 限制最小区域尺寸，低于该尺寸的区域将被过滤
 min_area: 128

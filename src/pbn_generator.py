@@ -3,12 +3,13 @@ import cv2
 import numpy as np
 import settings
 
+from tqdm import tqdm
 from cv2.typing import MatLike
 from common.utils.configs import pbn_config
-from common.utils.loggers import MyLogger
+from common.utils import loggers
 
 
-logger = MyLogger(__name__)
+logger = loggers.get_logger()
 
 
 def img2pbn(src_path: str):
@@ -40,7 +41,8 @@ def _convert_and_save(img_path: str):
     img = cv2.imread(img_path)
     img_name = os.path.basename(img_path)
     # 先通过聚类分离原图区域
-    recolored_img, area_parts, centers = _clusterize(img)
+    # recolored_img, area_parts, centers = _clusterize(img)
+    recolored_img, area_parts, centers = _slickmeans(img)
     # 再画出轮廓图
     pbn_img = _draw_outline(recolored_img.shape[:2], area_parts, centers)
 
@@ -49,11 +51,78 @@ def _convert_and_save(img_path: str):
     #     _save_img(part, img_name, f"_part{idx}")
     #     idx += 1
 
+    _save_img(recolored_img, img_name, "_recolored")
     _save_img(pbn_img, img_name, "_pbn")
 
 
+def _slickmeans(img: MatLike):
+    # 先经过 SLIC 做 superpixel 拿到超像素特征图
+    # 1. 高斯模糊
+    img = cv2.GaussianBlur(img, (5, 5), 0)
+    # 2. 转换到LAB颜色空间
+    lab_img = cv2.cvtColor(img, cv2.COLOR_BGR2Lab)
+    # 3. 创建SLIC超像素对象
+    slic = cv2.ximgproc.createSuperpixelSLIC(
+        lab_img,
+        algorithm=pbn_config.SLIC_ALGORITHM,
+        region_size=pbn_config.SLIC_REGION_SIZE,
+    )
+    # 4. 迭代分割
+    slic.iterate(pbn_config.SLIC_NUM_ITERATIONS)
+    # 5. 获取超像素标签和数量
+    slabels = slic.getLabels()  # 获取超像素标签 (1 ~ scout)
+    scount = slic.getNumberOfSuperpixels()  # 获取超像素数目
+    # 6. 生成 spuerpixel 组成的特征图
+    feature_list = []
+    # 每一个 superpixel 的颜色取其包含的所有原像素的均值
+    for slbl in tqdm(range(1, scount + 1), desc="生成超像素特征图"):
+        mask = slabels == slbl
+        mask = mask.astype(np.uint8)
+        # 颜色取均值
+        mean_color = cv2.mean(img, mask=mask)[:3]
+        feature_list.append([mean_color[0], mean_color[1], mean_color[2]])
+    slic_features = np.array(feature_list, dtype=np.float32)
+
+    # 再用超像素特征图进行 K-Means 聚类
+    # 1. K-Means 算法
+    criteria = (
+        pbn_config.KMEANS_CRITERIA_TYPE,
+        pbn_config.KMEANS_CRITERIA_MAX_ITER,
+        pbn_config.KMEANS_CRITERIA_EPSILON,
+    )
+    _, klabels, kcenters = cv2.kmeans(
+        slic_features,
+        pbn_config.KMEANS_NCLUSTERS,
+        None,
+        criteria,
+        pbn_config.KMEANS_ATTEMPTS,
+        pbn_config.KMEANS_FLAGS,
+    )
+    # 2. 生成聚类结果图
+    clustered_img = np.zeros_like(img).reshape(-1, 3)
+    slabels = slabels.flatten()
+    klabels = klabels.flatten()
+    for sp_lbl in tqdm(range(1, scount + 1), desc="生成聚类结果图"):
+        clustered_img[slabels == sp_lbl] = kcenters[klabels[sp_lbl - 1]].astype(int)
+    clustered_img = clustered_img.reshape(img.shape)
+    # 3. 生成各个区域的二值图
+    area_parts = []
+    for klbl in tqdm(range(kcenters.shape[0]), desc="生成各个区域的二值图"):
+        # 每次挑出所有 klbl 标签的超像素，再找出这些超像素对应的所有原图像素，对应位置设为白色
+        part = np.zeros(img.shape[:2], np.uint8).reshape((-1, 1))
+        for spidx in range(klabels.size):
+            if klabels[spidx] == klbl:
+                # 超像素标签就是当前像素索引+1，因为标签从 1 开始，索引从 0 开始
+                slbl = spidx + 1
+                part[slabels == slbl] = 255
+        part = part.reshape(img.shape[:2])
+        area_parts.append(part)
+
+    return clustered_img, area_parts, kcenters
+
+
 def _clusterize(img: MatLike) -> tuple[MatLike, list[MatLike], MatLike]:
-    """K-Mean 算法按区域分割图像
+    """K-Means 算法按区域分割图像
 
     Args:
         img_path (str): 图像路径

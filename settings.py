@@ -1,6 +1,7 @@
 # Settings
 # 项目根目录
-PROJECT_DIR = "/workspace/PaintGameToolkit"
+PROJECT_DIR = "D:/Programs/workspace/PaintGameToolkit"
+# PROJECT_DIR = "/workspace/PaintGameToolkit"
 
 # 配置文件查找目录
 CONFIG_DIRS = [

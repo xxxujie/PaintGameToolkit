@@ -2,11 +2,14 @@ import argparse
 import settings
 
 from src import pbn_generator
+from common.utils import loggers
 
 
 def main(args):
     if args.config_dir != "":
         settings.CONFIG_DIRS.insert(0, args.config_dir)
+    logger = loggers.get_logger()
+    logger.info("Start running")
 
 
 if __name__ == "__main__":
