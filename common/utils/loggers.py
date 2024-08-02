@@ -1,58 +1,27 @@
-import os
 import logging
+import logging.config
+import os
 import settings
+from .configs import load_config, find_config_path
 
 
-class MyLogger:
-
-    def __init__(
-        self,
-        name,
-        log_path=os.path.join(settings.LOG_DIR, "app.log"),
-        log_level=logging.INFO,
-    ):
+class _Logger:
+    def __init__(self, name, log_dir=settings.LOG_DIR):
+        self._log_dir = log_dir
         self._name = name
-        self._log_path = log_path
-        self._log_level = log_level
-        self._logger = self._init_logger()
+        self.logger = self._init_logger()
 
     def _init_logger(self):
+        config = load_config(find_config_path("logging_conf.yaml"))
+        fname = config["handlers"]["info_file"]["filename"]
+        config["handlers"]["info_file"]["filename"] = os.path.join(self._log_dir, fname)
+        fname = config["handlers"]["error_file"]["filename"]
+        config["handlers"]["error_file"]["filename"] = os.path.join(self._log_dir, fname)
+        logging.config.dictConfig(config)
         logger = logging.getLogger(self._name)
-        logger.setLevel(self._log_level)
-        logger_formatter = logging.Formatter(
-            fmt=(
-                "[%(asctime)s] %(levelname)s [%(name)s:%(lineno)s] [P%(process)d:%(threadName)s] "
-                "%(message)s"
-            ),
-            datefmt="%Y/%m/%d %H:%M:%S",
-        )
-        # 创建StreamHandler输出到控制台
-        logger_console_handler = logging.StreamHandler()
-        logger_console_handler.setLevel(logging.INFO)
-        logger_console_handler.setFormatter(logger_formatter)
-        # 创建FileHandler输出到文件
-        logger_file_handler = logging.FileHandler(filename=self._log_path, mode="a")
-        logger_file_handler.setLevel(logging.DEBUG)
-        logger_file_handler.setFormatter(logger_formatter)
-        # 将Handler添加到Logger
-        logger.addHandler(logger_console_handler)
-        logger.addHandler(logger_file_handler)
         return logger
 
-    def get_logger(self):
-        return self._logger
 
-    def debug(self, msg, *args):
-        self._logger.debug(msg, *args)
-
-    def info(self, msg, *args):
-        self._logger.info(msg, *args)
-
-    def warning(self, msg, *args):
-        self._logger.warning(msg, *args)
-
-    def error(self, msg, *args):
-        self._logger.error(msg, *args)
-
-    def exception(self, msg, *args):
-        self._logger.exception(msg, *args)
+def get_logger(name="default"):
+    logger = _Logger(name).logger
+    return logger
