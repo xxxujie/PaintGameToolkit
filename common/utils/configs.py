@@ -3,34 +3,9 @@ import yaml
 import json
 import cv2
 import settings
+from .loggers import get_logger
 
-
-class _ConfigHandler:
-    """(Deprecated)
-    读取所有配置文件，自动添加字典类型的配置实例作为属性
-    """
-
-    def __init__(self, config_dir):
-        self.reload(config_dir)
-
-    def reload(self, config_dir):
-        loader = self._load_configs(config_dir)
-        # 根据配置文件自动添加字典属性
-        for name, config in loader:
-            setattr(self, name, config)
-
-    def _load_configs(self, config_dir: str):
-        """加载配置文件"""
-        for fname in os.listdir(config_dir):
-            with open(os.path.join(config_dir, fname), "r", encoding="utf-8") as f:
-                ext = os.path.splitext(fname)[1]
-                if ext == ".yaml":
-                    config = yaml.load(f, yaml.FullLoader)
-                elif ext == ".json":
-                    config = json.load(f)
-                else:
-                    raise ValueError("不支持的配置文件格式：" + ext)
-                yield os.path.splitext(fname)[0], dict(config)
+logger = get_logger()
 
 
 def load_config(config_path: str) -> dict:
@@ -49,7 +24,7 @@ def load_config(config_path: str) -> dict:
 def find_config_path(file_name: str):
     """按照 settings.CONFIG_DIRS 列表中的目录顺序查找名为 file_name（需要带扩展名）的配置文件"""
 
-    for config_dir in settings.CONFIG_DIRS:
+    for config_dir in settings.USER_CONFIG_DIRS:
         # print(f"Finding {file_name} in {config_dir}")
         config_path = os.path.join(config_dir, file_name)
         if os.path.exists(config_path):
@@ -64,22 +39,34 @@ class _Config:
     def __init__(self, config_path: str):
         self._config = load_config(config_path)
 
-    def get(self, key):
-        return self._config.get(key)
+    def _get(self, *args):
+        item = ""
+        value = self._config
+        for key in args:
+            item += key
+            if type(value) is not dict:
+                raise ValueError(f"尝试从配置项 {item} 访问不存在的键 {key}")
+            value = value.get(key)
+            if value is None:
+                logger.warning(f"配置项 {item} 为空")
+                break
+            item += "."
+
+        return value
 
 
 class _PBNConfig(_Config):
     @property
     def KMEANS_NCLUSTERS(self):
-        return self.get("kmeans").get("nclusters")
+        return self._get("kmeans", "nclusters")
 
     @property
     def KMEANS_ATTEMPTS(self):
-        return self.get("kmeans").get("attempts")
+        return self._get("kmeans", "attempts")
 
     @property
     def KMEANS_CRITERIA_TYPE(self):
-        type = self.get("kmeans").get("criteria").get("type")
+        type = self._get("kmeans", "criteria", "type")
         if not hasattr(self, "_kmeans_criteria_type"):
             tmp = 0
             if "TERM_CRITERIA_EPS" in type:
@@ -94,15 +81,15 @@ class _PBNConfig(_Config):
 
     @property
     def KMEANS_CRITERIA_MAX_ITER(self):
-        return self.get("kmeans").get("criteria").get("max_iter")
+        return self._get("kmeans", "criteria", "max_iter")
 
     @property
     def KMEANS_CRITERIA_EPSILON(self):
-        return self.get("kmeans").get("criteria").get("epsilon")
+        return self._get("kmeans", "criteria", "epsilon")
 
     @property
     def KMEANS_FLAGS(self):
-        flags = self.get("kmeans").get("flags")
+        flags = self._get("kmeans", "flags")
         if not hasattr(self, "_kmeans_flags"):
             if "KMEANS_PP_CENTERS" in flags:
                 tmp = cv2.KMEANS_PP_CENTERS
@@ -118,20 +105,20 @@ class _PBNConfig(_Config):
 
     @property
     def MIN_AREA(self):
-        return self.get("min_area")
+        return self._get("min_area")
 
     @property
     def SHOW_BOTTOM_PANEL(self):
-        return self.get("show_bottom_panel")
+        return self._get("show_bottom_panel")
 
     @property
     def PANEL_HEIGHT(self):
-        return self.get("panel_height")
+        return self._get("panel_height")
 
     @property
     def CONTOUR_RETRIEVAL_MODE(self):
         if not hasattr(self, "_contour_retrieval_mode"):
-            match self.get("contour").get("retrieval_mode"):
+            match self._get("contour", "retrieval_mode"):
                 case "RETR_EXTERNAL":
                     tmp = cv2.RETR_EXTERNAL
                 case "RETR_LIST":
@@ -151,7 +138,7 @@ class _PBNConfig(_Config):
     @property
     def CONTOUR_APPROX_MODE(self):
         if not hasattr(self, "_contour_approx_mode"):
-            match self.get("contour").get("approx_mode"):
+            match self._get("contour", "approx_mode"):
                 case "CHAIN_APPROX_NONE":
                     tmp = cv2.CHAIN_APPROX_NONE
                 case "CHAIN_APPROX_SIMPLE":
@@ -166,12 +153,12 @@ class _PBNConfig(_Config):
 
     @property
     def SLIC_REGION_SIZE(self):
-        return self.get("slic").get("region_size")
+        return self._get("slic", "region_size")
 
     @property
     def SLIC_ALGORITHM(self):
         if not hasattr(self, "_slic_algorithm"):
-            match self.get("slic").get("algorithm"):
+            match self._get("slic", "algorithm"):
                 case "SLIC":
                     tmp = cv2.ximgproc.SLIC
                 case "SLICO":
@@ -186,19 +173,19 @@ class _PBNConfig(_Config):
 
     @property
     def SLIC_NUM_ITERATIONS(self):
-        return self.get("slic").get("num_iterations")
+        return self._get("slic", "num_iterations")
 
     @property
     def SLIC_GAUSSIAN_KSIZE(self):
-        return self.get("slic").get("gaussian_blur").get("ksize")
+        return self._get("slic", "gaussian_blur", "ksize")
 
     @property
     def SLIC_GAUSSIAN_SIGMA_X(self):
-        return self.get("slic").get("gaussian_blur").get("sigmaX")
+        return self._get("slic", "gaussian_blur", "sigmaX")
 
     @property
     def SLIC_GAUSSIAN_SIGMA_Y(self):
-        return self.get("slic").get("gaussian_blur").get("sigmaY")
+        return self._get("slic", "gaussian_blur", "sigmaY")
 
 
 # 留给外部调用的单例，初始化需要指定对应配置文件的地址

@@ -1,8 +1,9 @@
 import logging
 import logging.config
 import os
+import yaml
+import json
 import settings
-from .configs import load_config, find_config_path
 
 
 class _Logger:
@@ -12,7 +13,14 @@ class _Logger:
         self.logger = self._init_logger()
 
     def _init_logger(self):
-        config = load_config(find_config_path("logging_conf.yaml"))
+        with open(settings.LOGGING_CONFIG_PATH, "r", encoding="utf-8") as f:
+            ext = os.path.splitext(settings.LOGGING_CONFIG_PATH)[1]
+            if ext == ".yaml":
+                config = yaml.load(f, yaml.SafeLoader)
+            elif ext == ".json":
+                config = json.load(f)
+            else:
+                raise ValueError("不支持的 logging 配置文件格式：" + ext)
         fname = config["handlers"]["info_file"]["filename"]
         config["handlers"]["info_file"]["filename"] = os.path.join(self._log_dir, fname)
         fname = config["handlers"]["error_file"]["filename"]
