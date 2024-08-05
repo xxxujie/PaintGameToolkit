@@ -60,6 +60,8 @@ contour:
   # 1. CHAIN_APPROX_NONE：存储所有轮廓点
   # 2. CHAIN_APPROX_SIMPLE：只存储必要的轮廓点以节省空间，比如矩形只需要四个顶点
   approx_mode: CHAIN_APPROX_SIMPLE
+  # 轮廓线粗细
+  line_thickness: 2
 
 # 限制最小区域尺寸，低于该尺寸的区域将被过滤
 min_area: 4096

@@ -211,6 +211,10 @@ class _PBNConfig(_Config):
     def SUPERPIXEL_ALGORITHM(self):
         return self._get("superpixel_algorithm")
 
+    @property
+    def CONTOUR_LINE_THICKNESS(self):
+        return self._get("contour", "line_thickness")
+
 
 # 留给外部调用的单例，初始化需要指定对应配置文件的地址
 pbn_config = _PBNConfig(find_config_path("pbn_conf.yaml"))

@@ -271,7 +271,7 @@ def _draw_outline(
             contours=filtered_contours,
             contourIdx=-1,
             color=pbn_config.CONTOUR_COLOR,
-            thickness=1,
+            thickness=pbn_config.CONTOUR_LINE_THICKNESS,
             lineType=8,
             hierarchy=hierarchy,
             maxLevel=1,
