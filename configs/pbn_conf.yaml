@@ -1,25 +1,36 @@
+# 超像素前的高斯模糊操作
+gaussian_blur:
+  # 高斯核尺寸
+  ksize: [3, 3]
+  sigmaX: 0
+  sigmaY: 0
+
+# 超像素算法，可以是 SLIC 或 SEED
+superpixel_algorithm: "SEED"
+
 slic:
   # 超像素大小，决定了超像素数量（= 原像素数量 / 超像素大小）
-  region_size: 256
+  region_size: 32
   # 使用哪种 SLIC 算法变体，包括：SLIC、SLICO（默认）、MSLIC
-  algorithm: MSLIC
+  algorithm: SLICO
   # SLIC 迭代次数
-  num_iterations: 10
-  # SLIC 前的高斯模糊操作
-  gaussian_blur:
-    # 高斯核尺寸
-    ksize:
-      - 5
-      - 5
-    sigmaX: 0
-    sigmaY: 0
+  num_iterations: 100
+
+seed:
+  # 超像素数量
+  num_superpixels: 2000
+  num_levels: 20
+  prior: 3
+  histogram_bins: 5
+  # SEED 迭代次数
+  num_iterations: 100
 
 kmeans:
   # 聚类数目（K）
-  nclusters: 20
+  nclusters: 5
   
   # 尝试次数，使用结果最好的一次
-  attempts: 10
+  attempts: 100
 
   # 终止条件
   criteria:
@@ -29,9 +40,9 @@ kmeans:
     # 可叠加 - "TERM_CRITERIA_EPS+TERM_CRITERIA_MAX_ITER"
     type: TERM_CRITERIA_EPS+TERM_CRITERIA_MAX_ITER
     # 最大迭代次数
-    max_iter: 10
+    max_iter: 100000
     # 簇心变动幅度
-    epsilon: 0.5
+    epsilon: 0.000001
   
   # K-Means 初始化簇心的方法，包括：
   # 1. KMEANS_PP_CENTERS：按照 K-Means++ 论文中的方法
@@ -51,9 +62,10 @@ contour:
   approx_mode: CHAIN_APPROX_SIMPLE
 
 # 限制最小区域尺寸，低于该尺寸的区域将被过滤
-min_area: 128
+min_area: 4096
+
+# 轮廓线颜色
+contour_color: [200, 200, 200]
 
 # 是否在图片底部展示颜色面板
 show_bottom_panel: true
-# 面板高度
-panel_height: 50

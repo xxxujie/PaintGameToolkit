@@ -112,10 +112,6 @@ class _PBNConfig(_Config):
         return self._get("show_bottom_panel")
 
     @property
-    def PANEL_HEIGHT(self):
-        return self._get("panel_height")
-
-    @property
     def CONTOUR_RETRIEVAL_MODE(self):
         if not hasattr(self, "_contour_retrieval_mode"):
             match self._get("contour", "retrieval_mode"):
@@ -176,16 +172,44 @@ class _PBNConfig(_Config):
         return self._get("slic", "num_iterations")
 
     @property
-    def SLIC_GAUSSIAN_KSIZE(self):
-        return self._get("slic", "gaussian_blur", "ksize")
+    def SEED_NUM_SUPERPIXELS(self):
+        return self._get("seed", "num_superpixels")
 
     @property
-    def SLIC_GAUSSIAN_SIGMA_X(self):
-        return self._get("slic", "gaussian_blur", "sigmaX")
+    def SEED_NUM_LEVELS(self):
+        return self._get("seed", "num_levels")
 
     @property
-    def SLIC_GAUSSIAN_SIGMA_Y(self):
-        return self._get("slic", "gaussian_blur", "sigmaY")
+    def SEED_PRIOR(self):
+        return self._get("seed", "prior")
+
+    @property
+    def SEED_HISTOGRAM_BINS(self):
+        return self._get("seed", "histogram_bins")
+
+    @property
+    def SEED_NUM_ITERATIONS(self):
+        return self._get("seed", "num_iterations")
+
+    @property
+    def GAUSSIAN_KSIZE(self):
+        return self._get("gaussian_blur", "ksize")
+
+    @property
+    def GAUSSIAN_SIGMA_X(self):
+        return self._get("gaussian_blur", "sigmaX")
+
+    @property
+    def GAUSSIAN_SIGMA_Y(self):
+        return self._get("gaussian_blur", "sigmaY")
+
+    @property
+    def CONTOUR_COLOR(self):
+        return self._get("contour_color")
+
+    @property
+    def SUPERPIXEL_ALGORITHM(self):
+        return self._get("superpixel_algorithm")
 
 
 # 留给外部调用的单例，初始化需要指定对应配置文件的地址

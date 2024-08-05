@@ -1,7 +1,7 @@
 # Settings
 # 项目根目录
-# PROJECT_DIR = "D:/Programs/workspace/PaintGameToolkit"
-PROJECT_DIR = "/workspace/PaintGameToolkit"
+PROJECT_DIR = "D:/Programs/workspace/PaintGameToolkit"
+# PROJECT_DIR = "/workspace/PaintGameToolkit"
 
 LOGGING_CONFIG_PATH = f"{PROJECT_DIR}/configs/logger_conf.yaml"
 
