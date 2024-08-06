@@ -44,12 +44,14 @@ def _convert_and_save(img_path: str):
     img_name = os.path.basename(img_path)
     logger.info(f"开始转换 PBN（for {img_name}）")
     # 先通过聚类分离原图区域
-    # recolored_img, area_parts, centers = _clusterize(img)
+    # slic_img, recolored_img, area_parts, centers = _clusterize(img)
     slic_img, recolored_img, area_parts, centers = _cluster_with_superpixel(
         img, pbn_config.SUPERPIXEL_ALGORITHM
     )
     # 再画出轮廓图
     pbn_img = _draw_outline(recolored_img.shape[:2], area_parts, centers)
+
+    canny_img = _canny(img)
 
     # idx = 0
     # for part in area_parts:
@@ -58,8 +60,24 @@ def _convert_and_save(img_path: str):
 
     _save_img(slic_img, img_name, "_superpixel")
     _save_img(recolored_img, img_name, "_recolored")
+    _save_img(canny_img, img_name, "_canny")
     saved_path = _save_img(pbn_img, img_name, "_pbn")
     logger.info(f"转换完成！（saved in {saved_path}）")
+
+    img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY).flatten()
+    custom_img = np.ones(img_gray.shape, dtype=np.uint8) * 255
+    for idx in range(img_gray.size):
+        if img_gray[idx] < 100:
+            custom_img[idx] = 0
+    custom_img = custom_img.reshape(img.shape[:2])
+    custom_img = cv2.cvtColor(custom_img, cv2.COLOR_GRAY2BGR)
+    _save_img(custom_img, img_name, "_custom")
+
+
+def _canny(img):
+    canny_img = cv2.Canny(cv2.cvtColor(img, cv2.COLOR_BGR2GRAY), 100, 200)
+    canny_img = cv2.bitwise_not(canny_img)
+    return canny_img
 
 
 def _cluster_with_superpixel(img: MatLike, sp_algorithm):
@@ -212,7 +230,7 @@ def _clusterize(img: MatLike) -> tuple[MatLike, list[MatLike], MatLike]:
         part = part.reshape(img.shape[:2])
         area_parts.append(part)
 
-    return recolored_img, area_parts, centers
+    return None, recolored_img, area_parts, centers
 
 
 def _draw_outline(
@@ -253,6 +271,10 @@ def _draw_outline(
         filtered_contours = [
             cntr for cntr in contours if cv2.contourArea(cntr) > pbn_config.MIN_AREA
         ]
+        # approx_contours = []
+        # for cnt in filtered_contours:
+        #     epsilon = 0.005 * cv2.arcLength(cnt, True)
+        #     approx_contours.append(cv2.approxPolyDP(cnt, epsilon, True))
 
         # 在区域中标号
         # for k, contour in enumerate(filtered_contours):
@@ -274,7 +296,7 @@ def _draw_outline(
             thickness=pbn_config.CONTOUR_LINE_THICKNESS,
             lineType=8,
             hierarchy=hierarchy,
-            maxLevel=1,
+            maxLevel=2,
         )
 
     # 绘制图像底部的颜色展示面板

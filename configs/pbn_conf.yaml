@@ -12,13 +12,13 @@ slic:
   # 超像素大小，决定了超像素数量（= 原像素数量 / 超像素大小）
   region_size: 32
   # 使用哪种 SLIC 算法变体，包括：SLIC、SLICO（默认）、MSLIC
-  algorithm: SLICO
+  algorithm: MSLIC
   # SLIC 迭代次数
   num_iterations: 100
 
 seed:
   # 超像素数量
-  num_superpixels: 2000
+  num_superpixels: 5000
   num_levels: 20
   prior: 3
   histogram_bins: 5
@@ -27,10 +27,10 @@ seed:
 
 kmeans:
   # 聚类数目（K）
-  nclusters: 5
+  nclusters: 10
   
   # 尝试次数，使用结果最好的一次
-  attempts: 100
+  attempts: 10
 
   # 终止条件
   criteria:
@@ -40,9 +40,9 @@ kmeans:
     # 可叠加 - "TERM_CRITERIA_EPS+TERM_CRITERIA_MAX_ITER"
     type: TERM_CRITERIA_EPS+TERM_CRITERIA_MAX_ITER
     # 最大迭代次数
-    max_iter: 100000
+    max_iter: 1000
     # 簇心变动幅度
-    epsilon: 0.000001
+    epsilon: 0.01
   
   # K-Means 初始化簇心的方法，包括：
   # 1. KMEANS_PP_CENTERS：按照 K-Means++ 论文中的方法
@@ -61,13 +61,13 @@ contour:
   # 2. CHAIN_APPROX_SIMPLE：只存储必要的轮廓点以节省空间，比如矩形只需要四个顶点
   approx_mode: CHAIN_APPROX_SIMPLE
   # 轮廓线粗细
-  line_thickness: 2
+  line_thickness: 1
 
 # 限制最小区域尺寸，低于该尺寸的区域将被过滤
-min_area: 4096
+min_area: 128
 
 # 轮廓线颜色
-contour_color: [200, 200, 200]
+contour_color: [80, 80, 80]
 
 # 是否在图片底部展示颜色面板
-show_bottom_panel: true
+show_bottom_panel: false
