@@ -1,3 +1,4 @@
+import json
 import os
 import cv2
 import numpy as np
@@ -43,27 +44,19 @@ def _convert_and_save(img_path: str):
     img = cv2.imread(img_path)
     img_name = os.path.basename(img_path)
     logger.info(f"开始转换 PBN（for {img_name}）")
+    # 方法一：
     # 先通过聚类分离原图区域
     # slic_img, recolored_img, area_parts, centers = _clusterize(img)
     slic_img, recolored_img, area_parts, centers = _cluster_with_superpixel(
         img, pbn_config.SUPERPIXEL_ALGORITHM
     )
     # 再画出轮廓图
-    pbn_img = _draw_outline(recolored_img.shape[:2], area_parts, centers)
+    pbn_img, centroid4idx = _draw_outline(recolored_img.shape[:2], area_parts, centers)
 
+    # 方法二：Canny 算法分割
     canny_img = _canny(img)
 
-    # idx = 0
-    # for part in area_parts:
-    #     _save_img(part, img_name, f"_part{idx}")
-    #     idx += 1
-
-    _save_img(slic_img, img_name, "_superpixel")
-    _save_img(recolored_img, img_name, "_recolored")
-    _save_img(canny_img, img_name, "_canny")
-    saved_path = _save_img(pbn_img, img_name, "_pbn")
-    logger.info(f"转换完成！（saved in {saved_path}）")
-
+    # 方法三：自定义阈值分割
     img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY).flatten()
     custom_img = np.ones(img_gray.shape, dtype=np.uint8) * 255
     for idx in range(img_gray.size):
@@ -71,7 +64,24 @@ def _convert_and_save(img_path: str):
             custom_img[idx] = 0
     custom_img = custom_img.reshape(img.shape[:2])
     custom_img = cv2.cvtColor(custom_img, cv2.COLOR_GRAY2BGR)
+
+    # 保存结果
+    # idx = 0
+    # for part in area_parts:
+    #     _save_img(part, img_name, f"_part{idx}")
+    #     idx += 1
+    _save_img(slic_img, img_name, "_superpixel")
+    _save_img(recolored_img, img_name, "_recolored")
+    _save_img(canny_img, img_name, "_canny")
     _save_img(custom_img, img_name, "_custom")
+    saved_path = _save_img(pbn_img, img_name, "_pbn")
+    logger.info(f"转换完成！（saved in {saved_path}）")
+    # 保存中心点坐标为 JSON
+    if not os.path.exists(settings.OUTPUT_DIR):
+        os.makedirs(settings.OUTPUT_DIR)
+    data_path = os.path.join(settings.OUTPUT_DIR, f"{img_name}_centroids.json")
+    with open(data_path, "w", encoding="utf-8") as f:
+        json.dump(centroid4idx, f)
 
 
 def _canny(img):
@@ -248,6 +258,8 @@ def _draw_outline(
     """
     # 白底轮廓图，颜色用 200 灰色模仿手绘风格
     contour_img = np.ones(img_shape, dtype=np.uint8) * 255
+    centroid4idx = {}
+    contour_idx = 0
     for part in tqdm(area_parts, desc="正在绘制 PBN 图像："):
         # findContours 会找黑底图中的白色对象
         contours, hierarchy = cv2.findContours(
@@ -271,6 +283,13 @@ def _draw_outline(
         filtered_contours = [
             cntr for cntr in contours if cv2.contourArea(cntr) > pbn_config.MIN_AREA
         ]
+        for cntr in filtered_contours:
+            M = cv2.moments(cntr)
+            cx = int(M["m10"] / M["m00"])
+            cy = int(M["m01"] / M["m00"])
+            centroid4idx[contour_idx] = (cx, cy)
+            contour_idx += 1
+
         # approx_contours = []
         # for cnt in filtered_contours:
         #     epsilon = 0.005 * cv2.arcLength(cnt, True)
@@ -338,4 +357,4 @@ def _draw_outline(
         # 拼接轮廓图和颜色面板
         pbn_img = np.vstack((pbn_img, bott_panel))
 
-    return pbn_img
+    return pbn_img, centroid4idx
