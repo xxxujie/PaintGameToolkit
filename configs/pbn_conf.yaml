@@ -18,9 +18,9 @@ slic:
 
 seed:
   # 超像素数量
-  num_superpixels: 5000
-  num_levels: 20
-  prior: 3
+  num_superpixels: 10000
+  num_levels: 30 
+  prior: 5
   histogram_bins: 5
   # SEED 迭代次数
   num_iterations: 100

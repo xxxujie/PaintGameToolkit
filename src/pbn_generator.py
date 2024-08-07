@@ -54,7 +54,7 @@ def _convert_and_save(img_path: str):
     pbn_img, centroid4idx = _draw_outline(recolored_img.shape[:2], area_parts, centers)
 
     # 方法二：Canny 算法分割
-    canny_img = _canny(img)
+    # canny_img = _canny(img)
 
     # 方法三：自定义阈值分割
     img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY).flatten()
@@ -66,14 +66,15 @@ def _convert_and_save(img_path: str):
     custom_img = cv2.cvtColor(custom_img, cv2.COLOR_GRAY2BGR)
 
     # 保存结果
-    # idx = 0
-    # for part in area_parts:
-    #     _save_img(part, img_name, f"_part{idx}")
-    #     idx += 1
+    idx = 0
+    # 保存各部分图
+    for part in area_parts:
+        _save_img(part, img_name, f"_part{idx}")
+        idx += 1
+    # _save_img(canny_img, img_name, "_canny")
+    # _save_img(custom_img, img_name, "_custom")
     _save_img(slic_img, img_name, "_superpixel")
     _save_img(recolored_img, img_name, "_recolored")
-    _save_img(canny_img, img_name, "_canny")
-    _save_img(custom_img, img_name, "_custom")
     saved_path = _save_img(pbn_img, img_name, "_pbn")
     logger.info(f"转换完成！（saved in {saved_path}）")
     # 保存中心点坐标为 JSON
@@ -238,6 +239,13 @@ def _clusterize(img: MatLike) -> tuple[MatLike, list[MatLike], MatLike]:
             if labels[pixel_idx] == label:
                 part[pixel_idx] = 255
         part = part.reshape(img.shape[:2])
+        # 再转成 BGRA，将黑色部分变成透明
+        # part_bgra = cv2.cvtColor(part, cv2.COLOR_GRAY2BGRA).reshape((-1, 1))
+        # height = part_bgra.shape[0]
+        # width = part_bgra.shape[1]
+        # for i in range(height):
+        #     for j in range(width):
+        #         part_bgra[i, j, 3] = part_bgra[i, j, 3] if part_bgra[i, j, 0] == 0 else 0
         area_parts.append(part)
 
     return None, recolored_img, area_parts, centers
