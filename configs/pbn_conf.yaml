@@ -1,7 +1,7 @@
 # 超像素前的高斯模糊操作
 gaussian_blur:
   # 高斯核尺寸
-  ksize: [3, 3]
+  ksize: [5, 5]
   sigmaX: 0
   sigmaY: 0
 
@@ -18,7 +18,7 @@ slic:
 
 seed:
   # 超像素数量
-  num_superpixels: 10000
+  num_superpixels: 5000
   num_levels: 30 
   prior: 5
   histogram_bins: 5
@@ -64,7 +64,7 @@ contour:
   line_thickness: 1
 
 # 限制最小区域尺寸，低于该尺寸的区域将被过滤
-min_area: 128
+min_area: 256
 
 # 轮廓线颜色
 contour_color: [80, 80, 80]

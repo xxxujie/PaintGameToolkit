@@ -2,12 +2,11 @@ import json
 import os
 import cv2
 import numpy as np
-import settings
 
 from tqdm import tqdm
 from cv2.typing import MatLike
-from common.utils.configs import pbn_config
-from common.utils import loggers
+from xu_pytools import loggers
+from xu_pytools.configs import pbn_config, app_config
 
 
 logger = loggers.get_logger()
@@ -33,9 +32,9 @@ def img2pbn(src_path: str):
 def _save_img(img: MatLike, img_name, tag=""):
     name_without_ext = os.path.splitext(img_name)[0]
     name_ext = os.path.splitext(img_name)[1]
-    if not os.path.exists(settings.OUTPUT_DIR):
-        os.makedirs(settings.OUTPUT_DIR)
-    saved_path = os.path.join(settings.OUTPUT_DIR, name_without_ext + tag + name_ext)
+    if not os.path.exists(app_config.OUTPUT_DIR):
+        os.makedirs(app_config.OUTPUT_DIR)
+    saved_path = os.path.join(app_config.OUTPUT_DIR, name_without_ext + tag + name_ext)
     cv2.imwrite(saved_path, img)
     return saved_path
 
@@ -44,48 +43,61 @@ def _convert_and_save(img_path: str):
     img = cv2.imread(img_path)
     img_name = os.path.basename(img_path)
     logger.info(f"开始转换 PBN（for {img_name}）")
-    # 方法一：
-    # 先通过聚类分离原图区域
+    # 方法一：先通过聚类分离原图区域，再画出轮廓图
     # slic_img, recolored_img, area_parts, centers = _clusterize(img)
     slic_img, recolored_img, area_parts, centers = _cluster_with_superpixel(
         img, pbn_config.SUPERPIXEL_ALGORITHM
     )
-    # 再画出轮廓图
-    pbn_img, centroid4idx = _draw_outline(recolored_img.shape[:2], area_parts, centers)
+    pbn_img, centroid4idx, single_contour_imgs = _draw_outline(
+        recolored_img.shape[:2], area_parts, centers
+    )
 
-    # 方法二：Canny 算法分割
+    # 方法二：Canny 边缘检测算法分割
     # canny_img = _canny(img)
+    # _save_img(canny_img, img_name, "_canny")
 
     # 方法三：自定义阈值分割
-    img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY).flatten()
-    custom_img = np.ones(img_gray.shape, dtype=np.uint8) * 255
-    for idx in range(img_gray.size):
-        if img_gray[idx] < 100:
-            custom_img[idx] = 0
-    custom_img = custom_img.reshape(img.shape[:2])
-    custom_img = cv2.cvtColor(custom_img, cv2.COLOR_GRAY2BGR)
-
-    # 保存结果
-    idx = 0
-    # 保存各部分图
-    for part in area_parts:
-        _save_img(part, img_name, f"_part{idx}")
-        idx += 1
-    # _save_img(canny_img, img_name, "_canny")
+    # img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY).flatten()
+    # custom_img = np.ones(img_gray.shape, dtype=np.uint8) * 255
+    # for idx in range(img_gray.size):
+    #     if img_gray[idx] < 100:
+    #         custom_img[idx] = 0
+    # custom_img = custom_img.reshape(img.shape[:2])
+    # custom_img = cv2.cvtColor(custom_img, cv2.COLOR_GRAY2BGR)
     # _save_img(custom_img, img_name, "_custom")
+
+    # 保存各部分的轮廓图
+    for idx in range(len(single_contour_imgs)):
+        _save_img(single_contour_imgs[idx], img_name, f"_sc{idx}")
+    # 保存各部分的色块图
+    _save_parts(area_parts, img_name)
+    # 保存超像素结果
     _save_img(slic_img, img_name, "_superpixel")
+    # 保存重上色（聚类）结果
     _save_img(recolored_img, img_name, "_recolored")
-    saved_path = _save_img(pbn_img, img_name, "_pbn")
-    logger.info(f"转换完成！（saved in {saved_path}）")
-    # 保存中心点坐标为 JSON
-    if not os.path.exists(settings.OUTPUT_DIR):
-        os.makedirs(settings.OUTPUT_DIR)
-    data_path = os.path.join(settings.OUTPUT_DIR, f"{img_name}_centroids.json")
+    # 保存完整的线稿图（PBN 效果图）
+    _save_img(pbn_img, img_name, "_pbn")
+    # 保存中心点坐标为 JSON 文件
+    data_path = os.path.join(app_config.OUTPUT_DIR, f"{img_name}_centroids.json")
     with open(data_path, "w", encoding="utf-8") as f:
         json.dump(centroid4idx, f)
 
+    logger.info(f"转换完成！（Results are saved at {app_config.OUTPUT_DIR}）")
+
+
+def _save_parts(parts, img_name):
+    """保存每个部分的色块图"""
+
+    cnt = 0
+    for part in parts:
+        _save_img(part, img_name, f"_part{cnt}")
+        cnt += 1
+    return cnt
+
 
 def _canny(img):
+    """Canny 边缘检测算法"""
+
     canny_img = cv2.Canny(cv2.cvtColor(img, cv2.COLOR_BGR2GRAY), 100, 200)
     canny_img = cv2.bitwise_not(canny_img)
     return canny_img
@@ -239,13 +251,6 @@ def _clusterize(img: MatLike) -> tuple[MatLike, list[MatLike], MatLike]:
             if labels[pixel_idx] == label:
                 part[pixel_idx] = 255
         part = part.reshape(img.shape[:2])
-        # 再转成 BGRA，将黑色部分变成透明
-        # part_bgra = cv2.cvtColor(part, cv2.COLOR_GRAY2BGRA).reshape((-1, 1))
-        # height = part_bgra.shape[0]
-        # width = part_bgra.shape[1]
-        # for i in range(height):
-        #     for j in range(width):
-        #         part_bgra[i, j, 3] = part_bgra[i, j, 3] if part_bgra[i, j, 0] == 0 else 0
         area_parts.append(part)
 
     return None, recolored_img, area_parts, centers
@@ -264,8 +269,10 @@ def _draw_outline(
     Returns:
         MatLike: 画出轮廓后的图像
     """
-    # 白底轮廓图，颜色用 200 灰色模仿手绘风格
+    # 一整张轮廓图，白底开始画，颜色用 200 灰色模仿手绘风格
     contour_img = np.ones(img_shape, dtype=np.uint8) * 255
+    # 每个部分分别的轮廓图
+    single_contour_imgs = []
     centroid4idx = {}
     contour_idx = 0
     for part in tqdm(area_parts, desc="正在绘制 PBN 图像："):
@@ -273,19 +280,6 @@ def _draw_outline(
         contours, hierarchy = cv2.findContours(
             part, pbn_config.CONTOUR_RETRIEVAL_MODE, pbn_config.CONTOUR_APPROX_MODE
         )
-        # 过滤层级
-        # filtered_contour_idx = [0]
-        # info = hierarchy[0][0]
-        # while True:
-        #     next_idx = info[0]
-        #     if next_idx == -1:
-        #         break
-        #     filtered_contour_idx.append(next_idx)
-        #     info = hierarchy[0][next_idx]
-
-        # rest_contours = []
-        # for idx in filtered_contour_idx:
-        #     rest_contours.append(contours[idx])
 
         # 过滤面积小于 min_area 的轮廓区域
         filtered_contours = [
@@ -298,12 +292,13 @@ def _draw_outline(
             centroid4idx[contour_idx] = (cx, cy)
             contour_idx += 1
 
+        # Optional：近似轮廓
         # approx_contours = []
         # for cnt in filtered_contours:
         #     epsilon = 0.005 * cv2.arcLength(cnt, True)
         #     approx_contours.append(cv2.approxPolyDP(cnt, epsilon, True))
 
-        # 在区域中标号
+        # Optional：在区域中标号
         # for k, contour in enumerate(filtered_contours):
         #     if hierarchy[0, k, 3] < 0:
         #         cv2.putText(
@@ -315,6 +310,7 @@ def _draw_outline(
         #             (100, 100, 100),
         #         )
 
+        # 在整张轮廓图上画上新的轮廓
         cv2.drawContours(
             image=contour_img,
             contours=filtered_contours,
@@ -325,6 +321,20 @@ def _draw_outline(
             hierarchy=hierarchy,
             maxLevel=2,
         )
+
+        # 分别记录每一部分的轮廓图，加入列表中
+        single_contour_img = np.ones(img_shape, dtype=np.uint8) * 255
+        cv2.drawContours(
+            image=single_contour_img,
+            contours=filtered_contours,
+            contourIdx=-1,
+            color=pbn_config.CONTOUR_COLOR,
+            thickness=pbn_config.CONTOUR_LINE_THICKNESS,
+            lineType=8,
+            hierarchy=hierarchy,
+            maxLevel=2,
+        )
+        single_contour_imgs.append(single_contour_img)
 
     # 绘制图像底部的颜色展示面板
     bott_panel = np.zeros((50, contour_img.shape[1], 3), dtype=np.uint8)
@@ -365,4 +375,4 @@ def _draw_outline(
         # 拼接轮廓图和颜色面板
         pbn_img = np.vstack((pbn_img, bott_panel))
 
-    return pbn_img, centroid4idx
+    return pbn_img, centroid4idx, single_contour_imgs

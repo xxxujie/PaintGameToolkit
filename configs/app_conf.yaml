@@ -1,0 +1,2 @@
+data_dir: "./resources/data"
+output_dir: "./resources/outputs"

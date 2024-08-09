@@ -1,43 +1,13 @@
-import os
-import yaml
-import json
 import cv2
-import settings
-from .loggers import get_logger
 
-logger = get_logger()
-
-
-def load_config(config_path: str) -> dict:
-    """加载配置文件"""
-    with open(config_path, "r", encoding="utf-8") as f:
-        ext = os.path.splitext(config_path)[1]
-        if ext == ".yaml":
-            config = yaml.load(f, yaml.FullLoader)
-        elif ext == ".json":
-            config = json.load(f)
-        else:
-            raise ValueError("不支持的配置文件格式：" + ext)
-        return config
-
-
-def find_config_path(file_name: str):
-    """按照 settings.CONFIG_DIRS 列表中的目录顺序查找名为 file_name（需要带扩展名）的配置文件"""
-
-    for config_dir in settings.USER_CONFIG_DIRS:
-        # print(f"Finding {file_name} in {config_dir}")
-        config_path = os.path.join(config_dir, file_name)
-        if os.path.exists(config_path):
-            return config_path
-
-    raise ValueError(f"找不到配置文件 {file_name}，请检查 CONFIG_DIRS 或者命令行参数")
+from ._config_loader import load_config, find_config_path
 
 
 class _Config:
     """所有配置类的基类，实际上是一个字典的包装类，具体见 _SampleConfig"""
 
-    def __init__(self, config_path: str):
-        self._config = load_config(config_path)
+    def __init__(self, config_fname: str):
+        self._config = load_config(find_config_path(config_fname))
 
     def _get(self, *args):
         item = ""
@@ -48,7 +18,6 @@ class _Config:
                 raise ValueError(f"尝试从配置项 {item} 访问不存在的键 {key}")
             value = value.get(key)
             if value is None:
-                logger.warning(f"配置项 {item} 为空")
                 break
             item += "."
 
@@ -217,4 +186,17 @@ class _PBNConfig(_Config):
 
 
 # 留给外部调用的单例，初始化需要指定对应配置文件的地址
-pbn_config = _PBNConfig(find_config_path("pbn_conf.yaml"))
+pbn_config = _PBNConfig("pbn_conf.yaml")
+
+
+class _AppConfig(_Config):
+    @property
+    def DATA_DIR(self):
+        return self._get("data_dir")
+
+    @property
+    def OUTPUT_DIR(self):
+        return self._get("output_dir")
+
+
+app_config = _AppConfig("app_conf.yaml")

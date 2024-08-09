@@ -9,10 +9,15 @@ formatters:
     datefmt: "%Y/%m/%d %H:%M:%S"
 
 handlers:
-  console:
+  simple_console:
     class: logging.StreamHandler
     formatter: simple
-    level: DEBUG
+    level: INFO
+    stream: ext://sys.stdout
+  full_console:
+    class: logging.StreamHandler
+    formatter: full
+    level: INFO
     stream: ext://sys.stdout
   info_file:
     class: logging.handlers.TimedRotatingFileHandler
@@ -33,10 +38,10 @@ handlers:
 
 logger:
   default:
-    level: DEBUG
-    handlers: [console, info_file, error_file]
+    level: INFO
+    handlers: [full_console, info_file, error_file]
     propagate: no
 
 root:
   level: DEBUG
-  handlers: [console, info_file, error_file]
+  handlers: [full_console, info_file, error_file]
