@@ -184,6 +184,10 @@ class _PBNConfig(_Config):
     def CONTOUR_LINE_THICKNESS(self):
         return self._get("contour", "line_thickness")
 
+    @property
+    def SHOW_AREA_INDEX(self):
+        return self._get("show_area_index")
+
 
 # 留给外部调用的单例，初始化需要指定对应配置文件的地址
 pbn_config = _PBNConfig("pbn_conf.yaml")

@@ -1,4 +1,3 @@
-from calendar import c
 import json
 import os
 import cv2
@@ -51,7 +50,7 @@ def _convert_and_save(img_path: str):
     superpixel_img, recolored_img, area_parts, centers = _cluster_with_superpixel(
         img, pbn_config.SUPERPIXEL_ALGORITHM
     )
-    pbn_img, centroid4idx, single_contour_imgs = _draw_outline(
+    pbn_img, info4area, single_contour_imgs, pbn_img_with_bott = _draw_outline(
         recolored_img.shape[:2], area_parts, centers
     )
 
@@ -80,11 +79,18 @@ def _convert_and_save(img_path: str):
     _save_img(recolored_img, img_name, "_recolored")
     # 保存完整的线稿图（PBN 效果图）
     _save_img(pbn_img, img_name, "_pbn", ".png")
-    # 保存中心点坐标为 JSON 文件
+    # 保存颜色和其索引为 JSON 文件
     img_name_prefix = os.path.splitext(img_name)[0]
-    data_path = os.path.join(app_config.OUTPUT_DIR, f"{img_name_prefix}_centroids.json")
+    color_path = os.path.join(app_config.OUTPUT_DIR, f"{img_name_prefix}_colors.json")
+    info4color = {"info": []}
+    for color_idx, color in enumerate(centers):
+        info4color["info"].append({"idx": color_idx, "color": [int(c) for c in color]})
+    with open(color_path, "w", encoding="utf-8") as f:
+        json.dump(info4color, f)
+    # 保存中心点坐标为 JSON 文件
+    data_path = os.path.join(app_config.OUTPUT_DIR, f"{img_name_prefix}_info.json")
     with open(data_path, "w", encoding="utf-8") as f:
-        json.dump(centroid4idx, f)
+        json.dump(info4area, f)
 
     logger.info(f"转换完成！（Results are saved at {app_config.OUTPUT_DIR}）")
 
@@ -283,27 +289,21 @@ def _draw_outline(
     contour_img = np.ones(img_shape, dtype=np.uint8) * 255
     # 每个区域分别的区域图
     single_contour_imgs = []
-    centroid4idx = {}
+    info4area = {"info": []}
     contour_idx = 0
-    for part in tqdm(area_parts, desc="正在绘制 PBN 图像："):
+    logger.info("正在绘制 PBN 图像...")
+    for ap_idx, areapart in enumerate(area_parts):
         # findContours 会找黑底图中的白色对象
         contours, hierarchy = cv2.findContours(
-            part, pbn_config.CONTOUR_RETRIEVAL_MODE, pbn_config.CONTOUR_APPROX_MODE
+            areapart, pbn_config.CONTOUR_RETRIEVAL_MODE, pbn_config.CONTOUR_APPROX_MODE
         )
 
         # 过滤面积小于 min_area 的轮廓区域
         filtered_contours = [
             cntr for cntr in contours if cv2.contourArea(cntr) > pbn_config.MIN_AREA
         ]
-        # 计算每个轮廓的中心点，并且每个轮廓画一张图
+        # 计算每个轮廓的中心点，并且每个轮廓画一张单张轮廓图
         for cntr in filtered_contours:
-            # # 通过矩来计算轮廓中心点
-            # M = cv2.moments(cntr)
-            # cx = int(M["m10"] / M["m00"])
-            # cy = int(M["m01"] / M["m00"])
-            # centroid4idx[contour_idx] = (cx, cy)
-            # contour_idx += 1
-
             # 在一张黑底图上画单个白色区域
             single_cntr_img = np.zeros(img_shape, dtype=np.uint8)
             cv2.drawContours(
@@ -319,7 +319,7 @@ def _draw_outline(
             single_cntr_img_bgr = cv2.cvtColor(single_cntr_img, cv2.COLOR_GRAY2BGR)
             b, g, r = cv2.split(single_cntr_img_bgr)
             dst_scimg = cv2.merge((b, g, r, alpha))
-            # 找到该轮廓的最小外接矩形
+            # 找到该轮廓的最小外接矩形，裁剪这个矩形出来
             leftmost = tuple(cntr[cntr[:, :, 0].argmin()][0])
             rightmost = tuple(cntr[cntr[:, :, 0].argmax()][0])
             topmost = tuple(cntr[cntr[:, :, 1].argmin()][0])
@@ -329,33 +329,48 @@ def _draw_outline(
             y_min = topmost[1]
             y_max = bottommost[1]
             roi = dst_scimg[y_min:y_max, x_min:x_max]
-            # 记录每个外接矩形作为一个区域图
             single_contour_imgs.append(roi)
-            # 计算每个区域图的中心点坐标并保存
+            # 计算每个区域图的中心点坐标，并记录
             center_x = (x_min + x_max) // 2
             center_y = (y_min + y_max) // 2
-            centroid4idx[contour_idx] = (int(center_x), int(center_y))
+            area_pos = (int(center_x), int(center_y))
+
+            # Optional：近似轮廓
+            # approx_contours = []
+            # for cnt in filtered_contours:
+            #     epsilon = 0.005 * cv2.arcLength(cnt, True)
+            #     approx_contours.append(cv2.approxPolyDP(cnt, epsilon, True))
+
+            # 在轮廓中标号，并记录
+            # 先找到轮廓中心，用于标号位置
+            M = cv2.moments(cntr)
+            cx = int(M["m10"] / M["m00"])
+            cy = int(M["m01"] / M["m00"])
+            offset = 5  # 标号位置偏移量
+            cx -= x_min + offset
+            cy -= y_min - offset
+            if pbn_config.SHOW_AREA_INDEX:
+                cv2.putText(  # 在区域内写上标号
+                    img=roi,
+                    text=str(ap_idx + 1),  # 写在图上的标号从 1 开始
+                    org=(int(cx), int(cy)),
+                    fontFace=cv2.FONT_HERSHEY_COMPLEX_SMALL,
+                    fontScale=0.5,
+                    color=pbn_config.CONTOUR_COLOR,
+                )
+            area_color = ap_idx  # 该区域颜色索引
+
+            # 将区域的信息记录到字典中
+            info4area["info"].append(
+                {
+                    "idx": contour_idx,
+                    "color_idx": area_color,
+                    "pos": area_pos,
+                }
+            )
             contour_idx += 1
 
-        # Optional：近似轮廓
-        # approx_contours = []
-        # for cnt in filtered_contours:
-        #     epsilon = 0.005 * cv2.arcLength(cnt, True)
-        #     approx_contours.append(cv2.approxPolyDP(cnt, epsilon, True))
-
-        # Optional：在轮廓中标号
-        # for k, contour in enumerate(filtered_contours):
-        #     if hierarchy[0, k, 3] < 0:
-        #         cv2.putText(
-        #             black_img,
-        #             str(part_idx),
-        #             (int(contour[0, 0, 0]), int(contour[0, 0, 1]) + 14),
-        #             cv2.FONT_HERSHEY_PLAIN,
-        #             1,
-        #             (100, 100, 100),
-        #         )
-
-        # 在整张轮廓图上画上新的轮廓
+        # 画整张轮廓图
         cv2.drawContours(
             image=contour_img,
             contours=filtered_contours,
@@ -409,8 +424,8 @@ def _draw_outline(
     # 3. 以mask图像为基础，使白色部分透明化
     pbn_img[mask, 3] = 0
 
-    if pbn_config.SHOW_BOTTOM_PANEL:
-        # 拼接轮廓图和颜色面板
-        pbn_img = np.vstack((pbn_img, bott_panel))
+    # 拼接轮廓图和颜色面板
+    # pbn_img_with_bott = np.vstack((pbn_img, bott_panel))
+    pbn_img_with_bott = None
 
-    return pbn_img, centroid4idx, single_contour_imgs
+    return pbn_img, info4area, single_contour_imgs, pbn_img_with_bott
