@@ -77,10 +77,6 @@ class _PBNConfig(_Config):
         return self._get("min_area")
 
     @property
-    def SHOW_BOTTOM_PANEL(self):
-        return self._get("show_bottom_panel")
-
-    @property
     def CONTOUR_RETRIEVAL_MODE(self):
         if not hasattr(self, "_contour_retrieval_mode"):
             match self._get("contour", "retrieval_mode"):

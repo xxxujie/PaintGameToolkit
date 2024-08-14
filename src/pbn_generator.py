@@ -50,7 +50,7 @@ def _convert_and_save(img_path: str):
     superpixel_img, recolored_img, area_parts, centers = _cluster_with_superpixel(
         img, pbn_config.SUPERPIXEL_ALGORITHM
     )
-    pbn_img, info4area, single_contour_imgs, pbn_img_with_bott = _draw_outline(
+    only_cntr_img, info4area, single_contour_imgs, pbn_img = _draw_outline(
         recolored_img.shape[:2], area_parts, centers
     )
 
@@ -74,10 +74,12 @@ def _convert_and_save(img_path: str):
     # 保存各部分的色块图
     # _save_parts(area_parts, img_name)
     # 保存超像素结果
-    _save_img(superpixel_img, img_name, "_superpixel")
+    # _save_img(superpixel_img, img_name, "_superpixel")
     # 保存重上色（聚类）结果
-    _save_img(recolored_img, img_name, "_recolored")
-    # 保存完整的线稿图（PBN 效果图）
+    # _save_img(recolored_img, img_name, "_recolored")
+    # 保存仅线稿图（只有轮廓，其他透明）
+    _save_img(only_cntr_img, img_name, "_contours", ".png")
+    # 保存完整线稿图
     _save_img(pbn_img, img_name, "_pbn", ".png")
     # 保存颜色和其索引为 JSON 文件
     img_name_prefix = os.path.splitext(img_name)[0]
@@ -166,7 +168,7 @@ def _cluster_with_superpixel(img: MatLike, sp_algorithm):
     else:
         raise ValueError("指定了错误的超像素算法，请选择 SLIC 或 SEED！")
     # 4. 获取超像素标签和数量
-    splabels = sp.getLabels()  # 获取超像素标签 (1 ~ scout)
+    splabels = sp.getLabels()  # 获取超像素标签 (0 ~ num_superpixels)
     spcount = sp.getNumberOfSuperpixels()  # 获取超像素数目
     # 5. 画出超像素分割后的图
     mask = sp.getLabelContourMask()
@@ -175,7 +177,7 @@ def _cluster_with_superpixel(img: MatLike, sp_algorithm):
     # 6. 生成 spuerpixel 组成的特征图
     feature_list = []
     # 每一个 superpixel 的颜色取其包含的所有原像素的均值
-    for slbl in tqdm(range(1, spcount + 1), desc="生成超像素特征图"):
+    for slbl in tqdm(range(0, spcount), desc="生成超像素特征图"):
         mask = splabels == slbl
         mask = mask.astype(np.uint8)
         # 颜色取均值
@@ -218,9 +220,7 @@ def _cluster_with_superpixel(img: MatLike, sp_algorithm):
         part = np.zeros(img.shape[:2], np.uint8).reshape((-1, 1))
         for spidx in range(klabels.size):
             if klabels[spidx] == klbl:
-                # 超像素标签就是当前像素索引+1，因为标签从 1 开始，索引从 0 开始
-                slbl = spidx + 1
-                part[splabels == slbl] = 255
+                part[splabels == spidx] = 255
         part = part.reshape(img.shape[:2])
         area_parts.append(part)
 
@@ -329,7 +329,6 @@ def _draw_outline(
             y_min = topmost[1]
             y_max = bottommost[1]
             roi = dst_scimg[y_min:y_max, x_min:x_max]
-            single_contour_imgs.append(roi)
             # 计算每个区域图的中心点坐标，并记录
             center_x = (x_min + x_max) // 2
             center_y = (y_min + y_max) // 2
@@ -341,24 +340,28 @@ def _draw_outline(
             #     epsilon = 0.005 * cv2.arcLength(cnt, True)
             #     approx_contours.append(cv2.approxPolyDP(cnt, epsilon, True))
 
-            # 在轮廓中标号，并记录
+            # Optional：在轮廓中标号，并记录
             # 先找到轮廓中心，用于标号位置
-            M = cv2.moments(cntr)
-            cx = int(M["m10"] / M["m00"])
-            cy = int(M["m01"] / M["m00"])
-            offset = 5  # 标号位置偏移量
-            cx -= x_min + offset
-            cy -= y_min - offset
-            if pbn_config.SHOW_AREA_INDEX:
-                cv2.putText(  # 在区域内写上标号
-                    img=roi,
-                    text=str(ap_idx + 1),  # 写在图上的标号从 1 开始
-                    org=(int(cx), int(cy)),
-                    fontFace=cv2.FONT_HERSHEY_COMPLEX_SMALL,
-                    fontScale=0.5,
-                    color=pbn_config.CONTOUR_COLOR,
-                )
-            area_color = ap_idx  # 该区域颜色索引
+            # M = cv2.moments(cntr)
+            # cx = int(M["m10"] / M["m00"])
+            # cy = int(M["m01"] / M["m00"])
+            # offset = 5  # 标号位置偏移量
+            # cx -= x_min + offset
+            # cy -= y_min - offset
+            # if pbn_config.SHOW_AREA_INDEX:
+            #     cv2.putText(  # 在区域内写上标号
+            #         img=roi,
+            #         text=str(ap_idx + 1),  # 写在图上的标号从 1 开始
+            #         org=(int(cx), int(cy)),
+            #         fontFace=cv2.FONT_HERSHEY_COMPLEX_SMALL,
+            #         fontScale=0.5,
+            #         color=pbn_config.CONTOUR_COLOR,
+            #     )
+
+            single_contour_imgs.append(roi)
+
+            # 该区域颜色索引
+            area_color = ap_idx
 
             # 将区域的信息记录到字典中
             info4area["info"].append(
@@ -378,54 +381,17 @@ def _draw_outline(
             color=pbn_config.CONTOUR_COLOR,
             thickness=pbn_config.CONTOUR_LINE_THICKNESS,
             lineType=8,
-            hierarchy=hierarchy,
-            maxLevel=2,
-        )
-
-    # 绘制图像底部的颜色展示面板
-    bott_panel = np.zeros((50, contour_img.shape[1], 3), dtype=np.uint8)
-    average_width = bott_panel.shape[1] // centers.shape[0]
-    rect_width = average_width
-    # 为每一个颜色创建矩形
-    for center_idx in range(centers.shape[0]):
-        center_color = centers[center_idx]  # 中心颜色
-        # 色块
-        cv2.rectangle(
-            img=bott_panel,
-            pt1=(center_idx * average_width, 48),
-            pt2=(rect_width - 1 + center_idx * average_width, 2),
-            color=[int(col) for col in center_color],
-            thickness=-1,
-        )
-        # 外圈
-        cv2.rectangle(
-            img=bott_panel,
-            pt1=(center_idx * average_width, 49),
-            pt2=(rect_width + center_idx * average_width, 1),
-            color=(255, 255, 255),
-        )
-        # 文字
-        cv2.putText(
-            img=bott_panel,
-            text=f"{center_idx + 1}",
-            org=(center_idx * average_width, 40),
-            fontFace=cv2.FONT_HERSHEY_COMPLEX,
-            fontScale=1.2,
-            color=(255, 255, 255),
-            thickness=2,
+            # hierarchy=hierarchy,
+            # maxLevel=2,
         )
 
     # 将整张轮廓图的白色背景变透明
     # 1. 生成与白色部分对应的mask图像
-    contour_img_bgr = cv2.cvtColor(contour_img, cv2.COLOR_GRAY2BGR)
-    mask = np.all(contour_img_bgr[:, :, :] == [255, 255, 255], axis=-1)
+    pbn_img = cv2.cvtColor(contour_img, cv2.COLOR_GRAY2BGR)
+    mask = np.all(pbn_img[:, :, :] == [255, 255, 255], axis=-1)
     # 2. 将图片从三通道转为四通道
-    pbn_img = cv2.cvtColor(contour_img_bgr, cv2.COLOR_BGR2BGRA)
+    only_cntr_img = cv2.cvtColor(pbn_img, cv2.COLOR_BGR2BGRA)
     # 3. 以mask图像为基础，使白色部分透明化
-    pbn_img[mask, 3] = 0
+    only_cntr_img[mask, 3] = 0
 
-    # 拼接轮廓图和颜色面板
-    # pbn_img_with_bott = np.vstack((pbn_img, bott_panel))
-    pbn_img_with_bott = None
-
-    return pbn_img, info4area, single_contour_imgs, pbn_img_with_bott
+    return only_cntr_img, info4area, single_contour_imgs, pbn_img
