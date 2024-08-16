@@ -50,8 +50,8 @@ def _convert_and_save(img_path: str):
     superpixel_img, recolored_img, area_parts, centers = _cluster_with_superpixel(
         img, pbn_config.SUPERPIXEL_ALGORITHM
     )
-    only_cntr_img, info4area, single_contour_imgs, pbn_img = _draw_outline(
-        recolored_img.shape[:2], area_parts, centers
+    only_cntr_img, info4area, single_contour_imgs, area_gray_imgs, pbn_img = (
+        _draw_outline(img, area_parts, centers)
     )
 
     # 方法二：Canny 边缘检测算法分割
@@ -68,9 +68,12 @@ def _convert_and_save(img_path: str):
     # custom_img = cv2.cvtColor(custom_img, cv2.COLOR_GRAY2BGR)
     # _save_img(custom_img, img_name, "_custom")
 
-    # 保存所有单个的区域图为 png，因为需要透明效果
-    for idx in range(len(single_contour_imgs)):
-        _save_img(single_contour_imgs[idx], img_name, f"_part_{idx}", ".png")
+    # 保存所有单个的白色区域图为 png，因为需要透明效果
+    # for idx in range(len(single_contour_imgs)):
+    #     _save_img(single_contour_imgs[idx], img_name, f"_part_{idx}", ".png")
+    # 保存所有单个的灰度区域图为 png
+    for idx in range(len(area_gray_imgs)):
+        _save_img(area_gray_imgs[idx], img_name, f"_part_{idx}", ".png")
     # 保存各部分的色块图
     # _save_parts(area_parts, img_name)
     # 保存超像素结果
@@ -272,23 +275,29 @@ def _clusterize(img: MatLike) -> tuple[MatLike, list[MatLike], MatLike]:
     return None, recolored_img, area_parts, centers
 
 
-def _draw_outline(
-    img_shape: tuple[int, int], area_parts: list[MatLike], centers: MatLike
-):
+def _draw_outline(img: MatLike, area_parts: list[MatLike], centers: MatLike):
     """根据多个区域二值图和簇心画出轮廓图
 
     Args:
-        img_shape (Shape): 二值图像尺寸
+        img (MatLike): 原图
         area_parts (list[MatLike]): 各标签对应的区域图像数组
         centers (MatLike): K-Means 获得的簇心集合
 
     Returns:
         MatLike: 画出轮廓后的图像
     """
+    # 二值图像的尺寸以原图为基准
+    img_shape = img.shape[:2]
+    # 灰度图
+    gray_img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    gray_img_back_bgr = cv2.cvtColor(gray_img, cv2.COLOR_GRAY2BGR)
+    gb, gg, gr = cv2.split(gray_img_back_bgr)
     # 一整张轮廓图，白底开始画
     contour_img = np.ones(img_shape, dtype=np.uint8) * 255
-    # 每个区域分别的区域图
+    # 每个区域分别的白色区域图
     single_contour_imgs = []
+    # 每个区域分析的灰度区域图
+    area_gray_imgs = []
     info4area = {"info": []}
     contour_idx = 0
     logger.info("正在绘制 PBN 图像...")
@@ -319,6 +328,9 @@ def _draw_outline(
             single_cntr_img_bgr = cv2.cvtColor(single_cntr_img, cv2.COLOR_GRAY2BGR)
             b, g, r = cv2.split(single_cntr_img_bgr)
             dst_scimg = cv2.merge((b, g, r, alpha))
+            # 拿到灰度版本的区域（通过位与，黑色区域还会保持黑色）
+            gray_img_with_alpha = cv2.merge((gb, gg, gr, alpha))
+            gray_dst_scimg = cv2.bitwise_and(gray_img_with_alpha, dst_scimg)
             # 找到该轮廓的最小外接矩形，裁剪这个矩形出来
             leftmost = tuple(cntr[cntr[:, :, 0].argmin()][0])
             rightmost = tuple(cntr[cntr[:, :, 0].argmax()][0])
@@ -329,6 +341,7 @@ def _draw_outline(
             y_min = topmost[1]
             y_max = bottommost[1]
             roi = dst_scimg[y_min:y_max, x_min:x_max]
+            gray_roi = gray_dst_scimg[y_min:y_max, x_min:x_max]
             # 计算每个区域图的中心点坐标，并记录
             center_x = (x_min + x_max) // 2
             center_y = (y_min + y_max) // 2
@@ -359,6 +372,7 @@ def _draw_outline(
             #     )
 
             single_contour_imgs.append(roi)
+            area_gray_imgs.append(gray_roi)
 
             # 该区域颜色索引
             area_color = ap_idx
@@ -394,4 +408,4 @@ def _draw_outline(
     # 3. 以mask图像为基础，使白色部分透明化
     only_cntr_img[mask, 3] = 0
 
-    return only_cntr_img, info4area, single_contour_imgs, pbn_img
+    return only_cntr_img, info4area, single_contour_imgs, area_gray_imgs, pbn_img
