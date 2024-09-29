@@ -86,14 +86,16 @@ def _convert_and_save(img_path: str):
     _save_img(pbn_img, img_name, "_pbn", ".png")
     # 保存颜色和其索引为 JSON 文件
     img_name_prefix = os.path.splitext(img_name)[0]
-    color_path = os.path.join(app_config.OUTPUT_DIR, f"{img_name_prefix}_colors.json")
-    info4color = {"info": []}
+    color_path = os.path.join(
+        app_config.OUTPUT_DIR, f"{img_name_prefix}_color_infos.json"
+    )
+    info4color = {"infos": []}
     for color_idx, color in enumerate(centers):
-        info4color["info"].append({"idx": color_idx, "color": [int(c) for c in color]})
+        info4color["infos"].append({"idx": color_idx, "color": [int(c) for c in color]})
     with open(color_path, "w", encoding="utf-8") as f:
         json.dump(info4color, f)
     # 保存中心点坐标为 JSON 文件
-    data_path = os.path.join(app_config.OUTPUT_DIR, f"{img_name_prefix}_info.json")
+    data_path = os.path.join(app_config.OUTPUT_DIR, f"{img_name_prefix}_area_infos.json")
     with open(data_path, "w", encoding="utf-8") as f:
         json.dump(info4area, f)
 
@@ -298,7 +300,7 @@ def _draw_outline(img: MatLike, area_parts: list[MatLike], centers: MatLike):
     single_contour_imgs = []
     # 每个区域分析的灰度区域图
     area_gray_imgs = []
-    info4area = {"info": []}
+    info4area = {"infos": []}
     contour_idx = 0
     logger.info("正在绘制 PBN 图像...")
     for ap_idx, areapart in enumerate(area_parts):
@@ -378,7 +380,7 @@ def _draw_outline(img: MatLike, area_parts: list[MatLike], centers: MatLike):
             area_color = ap_idx
 
             # 将区域的信息记录到字典中
-            info4area["info"].append(
+            info4area["infos"].append(
                 {
                     "idx": contour_idx,
                     "color_idx": area_color,
