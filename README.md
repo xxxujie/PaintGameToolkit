@@ -1,13 +1,17 @@
 ## Quick Start
 
 1. 准备需要的素材图片
+
    准备好的图片放在 resources/data 目录下，可以放任意张，分割器会遍历目录下所有图片进行分割。
+   
    - 尺寸要求：无。不过涂色游戏项目需要图像长和宽小于等于 1024 像素。
    - 格式要求：所有 cv2.imread() 支持的格式都支持。
      - 但是为了涂色游戏的效果，.png是最佳选择，因为它会保留透明区域。
 
-2. 调整参数
+3. 调整参数
+
    参数配置文件位置为 configs/pbn_config.yaml。每一部分都有注释说明，需要特别注意的是：
+
    1. superpixel_algorithm 用于调整超像素的算法选择，包括 SLIC 和 SEED 两类，下面的 slic 和 seed 部分分别是两种算法需要的参数。
    2. kmeans.nclusters 用于调整聚类数目，实际上就是分割色块的数目，比如 60 就是会分割出 60 种颜色。
 
@@ -88,10 +92,12 @@
    show_area_index: false
    ```
 
-3. 运行代码
+4. 运行代码
+
    在项目根目录下，命令行执行：`python main.py`
 
-4. 输出结果
+5. 输出结果
+   
    输出的结果保存在 resources/outputs 文件夹下。
 
    ![image](https://github.com/user-attachments/assets/5886d6a1-81a0-4b2a-8b8e-bbb65a570b96)
@@ -157,12 +163,19 @@ logger.exception("hello");
 #### 配置文件工具的使用
 
 1. 配置文件目录
+   
    该工具会以 xu_pytools 文件夹的父目录为根目录，读取所有 <根目录>/ 和 <根目录>/configs/ 目录中的所有 .yaml 和 .json 配置文件。
+
 2. 继承 Config 基类，编写自定义 Config 类
+   
    直接写在 config.py 中，也可以重新写新文件，只要注意在代码中导入正确的模块即可。
+
 3. 为自定义 Config 类添加需要的属性
+   
    使用装饰器 @property 就可以为 Python 类添加 Getter 属性，并利用基类的 self._get(*args) 来获取配置文件中的字段。
+
 4. 初始化一个供外部使用的实例
+
    使用 my_config = MyConfig("my_config.yaml")。传入参数为配置文件全名。
 
 #### 举例
