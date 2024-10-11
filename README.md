@@ -1,113 +1,113 @@
 ## Quick Start
 
-1. 准备需要的素材图片
+### 准备需要的素材图片
 
-   准备好的图片放在 resources/data 目录下，可以放任意张，分割器会遍历目录下所有图片进行分割。
+准备好的图片放在 resources/data 目录下，可以放任意张，分割器会遍历目录下所有图片进行分割。
    
-   - 尺寸要求：无。不过涂色游戏项目需要图像长和宽小于等于 1024 像素。
-   - 格式要求：所有 cv2.imread() 支持的格式都支持。
-     - 但是为了涂色游戏的效果，.png是最佳选择，因为它会保留透明区域。
+- 尺寸要求：无。不过涂色游戏项目需要图像长和宽小于等于 1024 像素。
+- 格式要求：所有 cv2.imread() 支持的格式都支持。
+  - 但是为了涂色游戏的效果，.png是最佳选择，因为它会保留透明区域。
 
-3. 调整参数
+### 调整参数
 
-   参数配置文件位置为 configs/pbn_config.yaml。每一部分都有注释说明，需要特别注意的是：
+参数配置文件位置为 configs/pbn_config.yaml。每一部分都有注释说明，需要特别注意的是：
 
-   1. superpixel_algorithm 用于调整超像素的算法选择，包括 SLIC 和 SEED 两类，下面的 slic 和 seed 部分分别是两种算法需要的参数。
-   2. kmeans.nclusters 用于调整聚类数目，实际上就是分割色块的数目，比如 60 就是会分割出 60 种颜色。
+1. superpixel_algorithm 用于调整超像素的算法选择，包括 SLIC 和 SEED 两类，下面的 slic 和 seed 部分分别是两种算法需要的参数。
+2. kmeans.nclusters 用于调整聚类数目，实际上就是分割色块的数目，比如 60 就是会分割出 60 种颜色。
 
-   ```yaml
-   # 超像素前的高斯模糊操作
-   gaussian_blur:
-     # 高斯核尺寸
-     ksize: [5, 5]
-     sigmaX: 0
-     sigmaY: 0
+```yaml
+# 超像素前的高斯模糊操作
+gaussian_blur:
+  # 高斯核尺寸
+  ksize: [5, 5]
+  sigmaX: 0
+  sigmaY: 0
 
-   # 超像素算法，可以是 SLIC 或 SEED
-   superpixel_algorithm: "SEED"
+# 超像素算法，可以是 SLIC 或 SEED
+superpixel_algorithm: "SEED"
 
-   slic:
-     # 超像素大小，决定了超像素数量（= 原像素数量 / 超像素大小）
-     region_size: 32
-     # 使用哪种 SLIC 算法变体，包括：SLIC、SLICO（默认）、MSLIC
-     algorithm: SLICO
-     # SLIC 迭代次数
-     num_iterations: 100
+slic:
+  # 超像素大小，决定了超像素数量（= 原像素数量 / 超像素大小）
+  region_size: 32
+  # 使用哪种 SLIC 算法变体，包括：SLIC、SLICO（默认）、MSLIC
+  algorithm: SLICO
+  # SLIC 迭代次数
+  num_iterations: 100
 
-   seed:
-     # 超像素数量
-     num_superpixels: 5000
-     num_levels: 30 
-     prior: 5
-     histogram_bins: 5
-     # SEED 迭代次数
-     num_iterations: 100
+seed:
+  # 超像素数量
+  num_superpixels: 5000
+  num_levels: 30 
+  prior: 5
+  histogram_bins: 5
+  # SEED 迭代次数
+  num_iterations: 100
 
-   kmeans:
-     # 聚类数目（K）
-     nclusters: 60
-  
-     # 尝试次数，使用结果最好的一次
-     attempts: 10
+kmeans:
+  # 聚类数目（K）
+  nclusters: 60
 
-     # 终止条件
-     criteria:
-       # 终止条件类型，包括：
-       # 1. TERM_CRITERIA_EPS：簇心变动幅度低于 epsilon 时终止
-       # 2. TERM_CRITERIA_MAX_ITER：达到最大迭代次数时终止
-       # 可叠加 - "TERM_CRITERIA_EPS+TERM_CRITERIA_MAX_ITER"
-       type: TERM_CRITERIA_EPS+TERM_CRITERIA_MAX_ITER
-       # 最大迭代次数
-       max_iter: 1000
-       # 簇心变动幅度
-       epsilon: 0.01
-  
-     # K-Means 初始化簇心的方法，包括：
-     # 1. KMEANS_PP_CENTERS：按照 K-Means++ 论文中的方法
-     # 2. KMEANS_RANDOM_CENTERS：随机初始化
-     flags: KMEANS_PP_CENTERS
+  # 尝试次数，使用结果最好的一次
+  attempts: 10
 
-   contour:
-     # 提取轮廓层级的模式，包括：
-     # 1. RETR_EXTERNAL：只提取最外部轮廓
-     # 2. RETR_LIST：提取所有轮廓，但不建立父子和嵌套关系
-     # 3. RETR_CCOMP：提取所有轮廓，并组织为两个层级的关系
-     # 4. RETR_TREE：提取所有轮廓，并包含完成的层级关系
-     retrieval_mode: RETR_TREE
-     # 提取轮廓点的模式，包括：
-     # 1. CHAIN_APPROX_NONE：存储所有轮廓点
-     # 2. CHAIN_APPROX_SIMPLE：只存储必要的轮廓点以节省空间，比如矩形只需要四个顶点
-     approx_mode: CHAIN_APPROX_SIMPLE
-     # 轮廓线粗细
-     line_thickness: 1
+  # 终止条件
+  criteria:
+    # 终止条件类型，包括：
+    # 1. TERM_CRITERIA_EPS：簇心变动幅度低于 epsilon 时终止
+    # 2. TERM_CRITERIA_MAX_ITER：达到最大迭代次数时终止
+    # 可叠加 - "TERM_CRITERIA_EPS+TERM_CRITERIA_MAX_ITER"
+    type: TERM_CRITERIA_EPS+TERM_CRITERIA_MAX_ITER
+    # 最大迭代次数
+    max_iter: 1000
+    # 簇心变动幅度
+    epsilon: 0.01
 
-   # 限制最小区域尺寸，低于该尺寸的区域将被过滤
-   # ! 设置为 0 就行，因为过滤掉一些区域会导致游戏里缺一些色块
-   min_area: 16
+  # K-Means 初始化簇心的方法，包括：
+  # 1. KMEANS_PP_CENTERS：按照 K-Means++ 论文中的方法
+  # 2. KMEANS_RANDOM_CENTERS：随机初始化
+  flags: KMEANS_PP_CENTERS
 
-   # 轮廓线颜色
-   contour_color: [50, 50, 50]
+contour:
+  # 提取轮廓层级的模式，包括：
+  # 1. RETR_EXTERNAL：只提取最外部轮廓
+  # 2. RETR_LIST：提取所有轮廓，但不建立父子和嵌套关系
+  # 3. RETR_CCOMP：提取所有轮廓，并组织为两个层级的关系
+  # 4. RETR_TREE：提取所有轮廓，并包含完成的层级关系
+  retrieval_mode: RETR_TREE
+  # 提取轮廓点的模式，包括：
+  # 1. CHAIN_APPROX_NONE：存储所有轮廓点
+  # 2. CHAIN_APPROX_SIMPLE：只存储必要的轮廓点以节省空间，比如矩形只需要四个顶点
+  approx_mode: CHAIN_APPROX_SIMPLE
+  # 轮廓线粗细
+  line_thickness: 1
 
-   # 是否在区域内写上标号
-   show_area_index: false
-   ```
+# 限制最小区域尺寸，低于该尺寸的区域将被过滤
+# ! 设置为 0 就行，因为过滤掉一些区域会导致游戏里缺一些色块
+min_area: 16
 
-4. 运行代码
+# 轮廓线颜色
+contour_color: [50, 50, 50]
 
-   在项目根目录下，命令行执行：`python main.py`
+# 是否在区域内写上标号
+show_area_index: false
+```
 
-5. 输出结果
+### 运行代码
+
+在项目根目录下，命令行执行：`python main.py`
+
+### 输出结果
    
-   输出的结果保存在 resources/outputs 文件夹下。
+输出的结果保存在 resources/outputs 文件夹下。
 
-   ![image](https://github.com/user-attachments/assets/5886d6a1-81a0-4b2a-8b8e-bbb65a570b96)
+![image](https://github.com/user-attachments/assets/5886d6a1-81a0-4b2a-8b8e-bbb65a570b96)
 
-   - xxx_area_infos.json：区域信息，包括每一个分割区域的颜色 ID 和位置信息。
-   - xxx_color_infos.json：颜色信息，包括每一个颜色 ID 对应的 RGB 值。
-     - 提醒！Unity 中的 RGB 值是 0~2.55 而不是 0~255，所以在 Unity 里使用的时候要先除以 100。
-   - xxx_contours.png：一张只有轮廓的图。
-     - 该图在涂色游戏中暂时没用到，如果需要带轮廓风格的样式，可以把这张图叠在最上层。
-   - xxx_part_<n>.png：每一部分的区域图，已经灰度化。
+- xxx_area_infos.json：区域信息，包括每一个分割区域的颜色 ID 和位置信息。
+- xxx_color_infos.json：颜色信息，包括每一个颜色 ID 对应的 RGB 值。
+  - 提醒！Unity 中的 RGB 值是 0~2.55 而不是 0~255，所以在 Unity 里使用的时候要先除以 100。
+- xxx_contours.png：一张只有轮廓的图。
+  - 该图在涂色游戏中暂时没用到，如果需要带轮廓风格的样式，可以把这张图叠在最上层。
+- xxx_part_<n>.png：每一部分的区域图，已经灰度化。
 
 ## 代码详解
 
