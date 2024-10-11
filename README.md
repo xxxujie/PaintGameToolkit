@@ -2,18 +2,17 @@
 
 ### 准备需要的素材图片
 
-准备好的图片放在 resources/data 目录下，可以放任意张，分割器会遍历目录下所有图片进行分割。
+准备好的图片放在 `resources/data` 目录下，可以放任意张，分割器会遍历目录下所有图片进行分割。
    
-- 尺寸要求：无。不过涂色游戏项目需要图像长和宽小于等于 1024 像素。
+- 尺寸要求：无。
 - 格式要求：所有 cv2.imread() 支持的格式都支持。
-  - 但是为了涂色游戏的效果，.png是最佳选择，因为它会保留透明区域。
 
 ### 调整参数
 
-参数配置文件位置为 configs/pbn_config.yaml。每一部分都有注释说明，需要特别注意的是：
+参数配置文件位置为 `configs/pbn_config.yaml`。每一部分都有注释说明，需要特别注意的是：
 
-1. superpixel_algorithm 用于调整超像素的算法选择，包括 SLIC 和 SEED 两类，下面的 slic 和 seed 部分分别是两种算法需要的参数。
-2. kmeans.nclusters 用于调整聚类数目，实际上就是分割色块的数目，比如 60 就是会分割出 60 种颜色。
+1. `superpixel_algorithm` 用于调整超像素的算法选择，包括 SLIC 和 SEED 两类，下面的 slic 和 seed 部分分别是两种算法需要的参数。
+2. `kmeans.nclusters` 用于调整聚类数目，实际上就是分割色块的数目，比如 60 就是会分割出 60 种颜色。
 
 ```yaml
 # 超像素前的高斯模糊操作
@@ -98,16 +97,16 @@ show_area_index: false
 
 ### 输出结果
    
-输出的结果保存在 resources/outputs 文件夹下。
+输出的结果保存在 `resources/outputs` 文件夹下。
 
 ![image](https://github.com/user-attachments/assets/5886d6a1-81a0-4b2a-8b8e-bbb65a570b96)
 
-- xxx_area_infos.json：区域信息，包括每一个分割区域的颜色 ID 和位置信息。
-- xxx_color_infos.json：颜色信息，包括每一个颜色 ID 对应的 RGB 值。
+- `xxx_area_infos.json`：区域信息，包括每一个分割区域的颜色 ID 和位置信息。
+- `xxx_color_infos.json`：颜色信息，包括每一个颜色 ID 对应的 RGB 值。
   - 提醒！Unity 中的 RGB 值是 0~2.55 而不是 0~255，所以在 Unity 里使用的时候要先除以 100。
-- xxx_contours.png：一张只有轮廓的图。
+- `xxx_contours.png`：一张只有轮廓的图。
   - 该图在涂色游戏中暂时没用到，如果需要带轮廓风格的样式，可以把这张图叠在最上层。
-- xxx_part_<n>.png：每一部分的区域图，已经灰度化。
+- `xxx_part_<n>.png`：每一部分的区域图，已经灰度化。
 
 ## 代码详解
 
@@ -117,15 +116,15 @@ show_area_index: false
 
 ![image](https://github.com/user-attachments/assets/db0003e3-cf58-4487-bc77-fa55feb63503)
 
-- configs：配置文件，可以是 .yaml 或 .json 文件。
-- logs：输出日志，当天的日志为 app.log，每天 0 点自动备份名如 app.log.2024-10-11 的文件。
-- xu_pytools：Python 工具，包括日志工具和 config 工具。使用方法见下面章节。
-- resources：图片的输入和输出目录，需要分割的图片放在 resources/data 下，分割后的输出将在 resources/outputs 下。
-- src：源码目录，包括一个 pbn_generator.py 文件。
-- main.py：入口代码文件，运行改代码即可启动分割。
-  - python ./main.py
-- requirements.txt：项目需要的依赖包，命令行使用 pip install -r requirements.txt 来安装。
-- Dockerfile：Docker 镜像打包文件（不使用 Docker 的话不需要管）。
+- `configs`：配置文件，可以是 `.yaml` 或 `.json` 文件。
+- `logs`：输出日志，当天的日志为 `app.log`，每天 0 点自动备份名如 `app.log.2024-10-11` 的文件。
+- `xu_pytools`：Python 工具，包括日志工具和配置文件工具。使用方法见下面章节。
+- `resources`：图片的输入和输出目录，需要分割的图片放在 `resources/data` 下，分割后的输出将在 `resources/outputs` 下。
+- `src`：源码目录，包括一个 `pbn_generator.py` 文件。
+- `main.py`：入口代码文件，运行改代码即可启动分割。
+  - `python ./main.py`
+- `requirements.txt`：项目需要的依赖包，命令行使用 `pip install -r requirements.txt` 来安装。
+- `Dockerfile`：Docker 镜像打包文件（不使用 Docker 的话不需要管）。
 
 ### xu_pytools: 日志工具
 
