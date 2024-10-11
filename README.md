@@ -93,6 +93,7 @@
 
 4. 输出结果
    输出的结果保存在 resources/outputs 文件夹下。
+
    ![image](https://github.com/user-attachments/assets/5886d6a1-81a0-4b2a-8b8e-bbb65a570b96)
 
    - xxx_area_infos.json：区域信息，包括每一个分割区域的颜色 ID 和位置信息。
@@ -145,7 +146,7 @@ logger.exception("hello");
 
 #### 日志的配置
 
-日志的配置文件在 `xu_pytools/settings/loggers_setting.yaml`，本日志工具是基于 logging 包写的，配置文件也和它一样，具体配置详见：[https://docs.python.org/zh-cn/3/library/logging.config.html](https://docs.python.org/zh-cn/3/library/logging.config.html)
+日志的配置文件在 `xu_pytools/settings/loggers_setting.yaml`，本日志工具是基于 logging 包写的，配置文件也和它一样，具体配置详见：[https://docs.python.org/zh-cn/3/library/logging.config.html](https://docs.python.org/zh-cn/3/library/logging.config.html)。
 
 ### xu_pytools: 配置文件工具
 
